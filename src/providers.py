@@ -41,14 +41,16 @@ class MockOfflineProvider(BaseLLMProvider):
         return f"[Mock Chatbot Response]: Xin chào! Tôi đã nhận được câu hỏi '{prompt}'. (Chế độ Chatbot không có Tool tra cứu dữ liệu thời gian thực)."
 
     def generate_with_tools(self, messages: List[Dict[str, Any]], tools_schema: List[Dict[str, Any]], system_prompt: str = "") -> Dict[str, Any]:
-        last_user = next((m["content"] for m in reversed(messages) if m.get("role") == "user"), "")
-        prompt_lower = last_user.lower()
+        # Dùng tin nhắn user ĐẦU TIÊN (câu hỏi gốc) để nhận diện ý định, vì các tin nhắn user
+        # sau đó (nếu có) là ghi chú Reflexion chen giữa, không phải yêu cầu mới của người dùng.
+        first_user = next((m["content"] for m in messages if m.get("role") == "user"), "")
+        prompt_lower = first_user.lower()
         done_tools = {m["tool_name"] for m in messages if m.get("role") == "assistant" and m.get("type") == "tool_call"}
 
         # Trích xuất thô: tiêu đề trong dấu nháy đơn, ngày dạng dd/mm/yyyy, mã task dạng T + số
-        title_match = re.search(r"'([^']+)'", last_user)
-        date_match = re.search(r"\d{1,2}/\d{1,2}/\d{4}", last_user)
-        task_id_match = re.search(r"\bT\d{3}\b", last_user, re.IGNORECASE)
+        title_match = re.search(r"'([^']+)'", first_user)
+        date_match = re.search(r"\d{1,2}/\d{1,2}/\d{4}", first_user)
+        task_id_match = re.search(r"\bT\d{3}\b", first_user, re.IGNORECASE)
 
         if "xóa" in prompt_lower and "delete_task" not in done_tools:
             return {

@@ -21,6 +21,7 @@ from mcp_server import MCPAcademicServer
 from prompts import (
     CHATBOT_BASELINE_PROMPT,
     REACT_AGENT_SYSTEM_PROMPT,
+    PLANNER_SYSTEM_PROMPT,
     MAX_ITERATIONS
 )
 from providers import get_llm_provider
@@ -61,28 +62,83 @@ def run_baseline_chatbot(user_query: str, provider):
     print(f"🤖 Chatbot phản hồi:\n{response}")
 
 
+def _parse_plan(raw_text: str) -> list:
+    """Phân tích chuỗi phản hồi của Planner thành danh sách các bước (list[str])."""
+    text = (raw_text or "").strip()
+    # Bóc code fence nếu LLM lỡ bọc JSON trong ```json ... ```
+    if text.startswith("```"):
+        text = text.strip("`")
+        if "\n" in text:
+            text = text.split("\n", 1)[1]
+    try:
+        plan = json.loads(text)
+        if isinstance(plan, list) and plan and all(isinstance(s, str) for s in plan):
+            return plan
+    except Exception:
+        pass
+    # Fallback: không parse được JSON hợp lệ -> coi cả câu hỏi là 1 bước duy nhất
+    return [text] if text else ["Thực hiện yêu cầu của người dùng"]
+
+
+def plan_task(user_query: str, provider) -> list:
+    """
+    [PLANNER - hướng tới Cấp 4 Autonomous Agent] Lập kế hoạch nhiều bước
+    TRƯỚC KHI chạy ReAct Loop, giúp Agent bám sát mục tiêu tổng thể (Long Horizon Goal)
+    thay vì chỉ phản ứng rời rạc từng lượt.
+    """
+    raw_plan = provider.generate(user_query, system_prompt=PLANNER_SYSTEM_PROMPT)
+    return _parse_plan(raw_plan)
+
+
+def _is_failure_observation(obs_data: dict) -> bool:
+    """Nhận diện Observation cho thấy Hành động vừa rồi thất bại/không như mong đợi."""
+    return obs_data.get("status") in ("EXECUTION_ERROR", "UNKNOWN_TOOL", "NOT_FOUND")
+
+
 def run_react_agent(user_query: str, provider, mcp_server: MCPAcademicServer) -> list:
     """
-    [REACT AGENT LOOP] Thực thi vòng lặp Thought -> Action -> Observation với MCP Server.
-    Hỗ trợ TRUE MULTI-STEP: sau mỗi Observation, Agent quay lại hỏi LLM tiếp
-    (dựa trên toàn bộ lịch sử hội thoại `messages`) cho đến khi có Final Answer
-    hoặc hết MAX_ITERATIONS.
-    Trả về danh sách trace log của phiên thực thi.
+    [REACT AGENT LOOP + PLANNER + REFLEXION] Thực thi vòng lặp Thought -> Action -> Observation
+    với MCP Server. Hỗ trợ TRUE MULTI-STEP: sau mỗi Observation, Agent quay lại hỏi LLM tiếp
+    (dựa trên toàn bộ lịch sử hội thoại `messages`) cho đến khi có Final Answer hoặc hết
+    MAX_ITERATIONS. Trước vòng lặp, Agent tự lập kế hoạch (Planner); trong vòng lặp, nếu một
+    Hành động thất bại, Agent được nhắc tự phản tư (Reflexion) để điều chỉnh thay vì lặp lại
+    y nguyên sai lầm. Trả về danh sách trace log của phiên thực thi.
     """
     print(f"\n🤖 [REACT AGENT] Câu hỏi: {user_query}")
 
+    # --- BƯỚC 0: PLANNER - lập kế hoạch trước khi hành động ---
+    plan = plan_task(user_query, provider)
+    plan_display = "\n".join(f"{i + 1}. {s}" for i, s in enumerate(plan))
+    print(f"🗺️ [Plan]:\n{plan_display}")
+
+    trace_logs = [{
+        "step": 0,
+        "query": user_query,
+        "action_type": "PLAN",
+        "thought": "Lập kế hoạch nhiều bước trước khi thực thi ReAct Loop.",
+        "plan": plan,
+        "latency_ms": 0.0
+    }]
+
     step = 0
-    trace_logs = []
     tools_list = mcp_server.list_tools()
     messages = [{"role": "user", "content": user_query}]
+    completed_steps = 0
 
     while step < MAX_ITERATIONS:
         step += 1
         step_start_time = time.time()
         print(f"\n--- 🔄 Vòng lặp ReAct Loop (Step {step}/{MAX_ITERATIONS}) ---")
 
+        # System Prompt kèm Kế hoạch + Tiến độ hiện tại, để Agent luôn bám mục tiêu tổng thể
+        dynamic_system_prompt = (
+            REACT_AGENT_SYSTEM_PROMPT
+            + f"\n\n[KẾ HOẠCH ĐÃ LẬP - {len(plan)} bước]:\n{plan_display}"
+            + f"\n[TIẾN ĐỘ HIỆN TẠI]: đã thực hiện {completed_steps}/{len(plan)} bước dự kiến."
+        )
+
         # Gọi LLM với Native Tool Calling Specs, kèm toàn bộ lịch sử hội thoại đến hiện tại
-        llm_response = provider.generate_with_tools(messages, tools_list, system_prompt=REACT_AGENT_SYSTEM_PROMPT)
+        llm_response = provider.generate_with_tools(messages, tools_list, system_prompt=dynamic_system_prompt)
         latency_ms = round((time.time() - step_start_time) * 1000, 2)
 
         thought = llm_response.get("thought", "Đang suy luận...")
@@ -116,6 +172,7 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPAcademicServer) ->
             obs_str = json.dumps(obs_data, ensure_ascii=False)
             print(f"👁️ [Observation từ MCP Server]: {obs_str}")
 
+            completed_steps += 1
             trace_logs.append({
                 "step": step,
                 "query": user_query,
@@ -140,6 +197,26 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPAcademicServer) ->
                 "content": obs_str,
                 "tool_call_id": tool_call_id
             })
+
+            # --- REFLEXION: Hành động vừa rồi thất bại -> nhắc Agent tự phản tư trước khi tiếp tục ---
+            if _is_failure_observation(obs_data):
+                reflection_note = (
+                    f"⚠️ [Reflexion] Hành động '{tool_name}' vừa rồi KHÔNG thành công như mong đợi "
+                    f"(status={obs_data.get('status')}). Hãy đọc kỹ Observation ở trên, suy xét nguyên "
+                    f"nhân (tham số sai, dữ liệu không tồn tại, ...), rồi quyết định: thử lại với tham số "
+                    f"khác, chọn Tool phù hợp hơn, hoặc nếu không thể tiếp tục thì dừng lại và báo trung "
+                    f"thực cho người dùng — tuyệt đối không lặp lại y nguyên hành động đã thất bại."
+                )
+                messages.append({"role": "user", "content": reflection_note})
+                print(f"🔁 [Reflexion]: {reflection_note}")
+                trace_logs.append({
+                    "step": step,
+                    "query": user_query,
+                    "action_type": "REFLECTION",
+                    "thought": reflection_note,
+                    "observation": obs_data,
+                    "latency_ms": 0.0
+                })
             # Không break: quay lại đầu vòng lặp để LLM tổng hợp câu trả lời hoặc gọi tiếp Tool khác
     else:
         # Hết MAX_ITERATIONS mà LLM vẫn chưa đưa ra Final Answer -> chặn vòng lặp vô hạn

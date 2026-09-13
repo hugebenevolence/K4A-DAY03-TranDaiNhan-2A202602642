@@ -1,29 +1,155 @@
 [
   {
     "step": 1,
-    "query": "Chào bạn, bạn có thể giới thiệu quy chế học vụ cơ bản của Đại học VinUni không?",
+    "query": "Chào bạn, bạn có thể cho tôi vài mẹo quản lý công việc hiệu quả hơn không?",
     "action_type": "FINAL_ANSWER",
-    "thought": "Câu hỏi chung về quy chế học vụ, trả lời trực tiếp không cần gọi Tool.",
-    "output": "[Mock Agent Response]: Xin chào! Quy chế học vụ VinUni yêu cầu sinh viên tích lũy tối thiểu 120 tín chỉ và duy trì GPA trên 2.0 để tốt nghiệp.",
-    "latency_ms": 2845.93
+    "thought": "OpenAI phản hồi trực tiếp bằng văn bản (không cần gọi thêm công cụ).",
+    "output": "Dưới đây là một số mẹo giúp quản lý công việc hiệu quả hơn:\n\n1. **Lập danh sách công việc**: Ghi lại tất cả các công việc cần làm giúp bạn có cái nhìn tổng quát và không bỏ sót nhiệm vụ nào.\n\n2. **Ưu tiên công việc**: Sử dụng phương pháp Eisenhower Matrix để phân loại công việc theo mức độ quan trọng và tính cấp bách. Tập trung vào những công việc quan trọng và khẩn cấp trước.\n\n3. **Thiết lập mục tiêu cụ thể**: Mục tiêu SMART (Cụ thể, Đo lường được, Đạt được, Thực tế, Thời hạn) giúp bạn định hướng và theo dõi tiến trình hiệu quả hơn.\n\n4. **Sử dụng công cụ hỗ trợ**: Sử dụng các ứng dụng quản lý công việc như Trello, Asana hoặc Todoist để theo dõi ngày hết hạn, nhắc nhở và chia sẻ với đồng đội.\n\n5. **Chia nhỏ công việc lớn**: Nếu một công việc quá lớn hoặc khó khăn, hãy chia nó thành các phần nhỏ hơn để dễ quản lý và hoàn thành từng bước một.\n\n6. **Thiết lập thời gian làm việc**: Sử dụng phương pháp Pomodoro (nghỉ ngắn sau 25 phút làm việc) để duy trì sự tập trung và sức sáng tạo.\n\n7. **Đánh giá và điều chỉnh**: Thường xuyên xem xét và điều chỉnh danh sách công việc và cách làm việc của bạn để cải thiện hiệu suất và giảm căng thẳng.\n\n8. **Đặt giới hạn cho thời gian**: Quy định thời gian cụ thể để hoàn thành từng công việc, giúp bạn giữ tập trung và không bị phân tâm.\n\nÁp dụng những mẹo này có thể giúp bạn tăng cường khả năng quản lý công việc và đạt được hiệu quả cao hơn trong công việc hàng ngày.",
+    "latency_ms": 6074.07
   },
   {
     "step": 1,
-    "query": "Hãy tra cứu thông tin học vụ của sinh viên SV2026001.",
+    "query": "Hãy cho tôi xem danh sách các công việc đang chờ xử lý (pending).",
     "action_type": "TOOL_EXECUTION",
-    "tool_name": "academic_query",
+    "tool_name": "get_tasks_by_status",
     "arguments": {
-      "student_id": "SV2026001"
+      "status": "pending"
     },
-    "observation": {},
-    "latency_ms": 799.12
+    "observation": {
+      "status": "SUCCESS",
+      "filter_status": "pending",
+      "count": 2,
+      "tasks": [
+        {
+          "task_id": "T001",
+          "title": "Hoàn thành báo cáo tuần",
+          "due_date": "20/09/2026",
+          "priority": "Cao",
+          "status": "pending"
+        },
+        {
+          "task_id": "T002",
+          "title": "Chuẩn bị slide họp nhóm",
+          "due_date": "18/09/2026",
+          "priority": "Trung bình",
+          "status": "pending"
+        }
+      ]
+    },
+    "latency_ms": 1041.69
   },
   {
     "step": 2,
-    "query": "Hãy tra cứu thông tin học vụ của sinh viên SV2026001.",
+    "query": "Hãy cho tôi xem danh sách các công việc đang chờ xử lý (pending).",
     "action_type": "FINAL_ANSWER",
-    "thought": "Tổng hợp kết quả từ MCP Server thành công.",
-    "output": "Chưa thể trả lời chi tiết do chưa nhận được dữ liệu từ MCP Server (hãy hoàn thành TODO 2.1).",
-    "latency_ms": 10.0
+    "thought": "OpenAI phản hồi trực tiếp bằng văn bản (không cần gọi thêm công cụ).",
+    "output": "Dưới đây là danh sách các công việc đang chờ xử lý (pending):\n\n1. **Công việc ID**: T001\n   - **Tiêu đề**: Hoàn thành báo cáo tuần\n   - **Hạn hoàn thành**: 20/09/2026\n   - **Mức độ ưu tiên**: Cao\n\n2. **Công việc ID**: T002\n   - **Tiêu đề**: Chuẩn bị slide họp nhóm\n   - **Hạn hoàn thành**: 18/09/2026\n   - **Mức độ ưu tiên**: Trung bình",
+    "latency_ms": 1985.64
+  },
+  {
+    "step": 1,
+    "query": "Tạo giúp tôi một công việc mới: 'Ôn thi cuối kỳ môn AI', hạn hoàn thành 25/09/2026, mức ưu tiên cao.",
+    "action_type": "TOOL_EXECUTION",
+    "tool_name": "create_task",
+    "arguments": {
+      "title": "Ôn thi cuối kỳ môn AI",
+      "due_date": "25/09/2026",
+      "priority": "Cao"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "task_id": "T005",
+      "title": "Ôn thi cuối kỳ môn AI",
+      "due_date": "25/09/2026",
+      "priority": "Cao",
+      "message": "Đã tạo công việc 'Ôn thi cuối kỳ môn AI' (mã T005) với hạn hoàn thành 25/09/2026, ưu tiên Cao."
+    },
+    "latency_ms": 861.73
+  },
+  {
+    "step": 2,
+    "query": "Tạo giúp tôi một công việc mới: 'Ôn thi cuối kỳ môn AI', hạn hoàn thành 25/09/2026, mức ưu tiên cao.",
+    "action_type": "FINAL_ANSWER",
+    "thought": "OpenAI phản hồi trực tiếp bằng văn bản (không cần gọi thêm công cụ).",
+    "output": "Đã tạo công việc mới với nội dung 'Ôn thi cuối kỳ môn AI', hạn hoàn thành 25/09/2026, và mức ưu tiên cao. Mã công việc là T005.",
+    "latency_ms": 1140.58
+  },
+  {
+    "step": 1,
+    "query": "Trước tiên hãy kiểm tra xem có công việc nào đã hoàn thành (done) chưa, sau đó cập nhật công việc có mã T001 sang trạng thái 'done'.",
+    "action_type": "TOOL_EXECUTION",
+    "tool_name": "get_tasks_by_status",
+    "arguments": {
+      "status": "done"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "filter_status": "done",
+      "count": 2,
+      "tasks": [
+        {
+          "task_id": "T003",
+          "title": "Nộp bài Lab 3 ReAct Agent",
+          "due_date": "15/09/2026",
+          "priority": "Cao",
+          "status": "done"
+        },
+        {
+          "task_id": "T004",
+          "title": "Dọn dẹp hộp thư email",
+          "due_date": "22/09/2026",
+          "priority": "Thấp",
+          "status": "done"
+        }
+      ]
+    },
+    "latency_ms": 739.13
+  },
+  {
+    "step": 2,
+    "query": "Trước tiên hãy kiểm tra xem có công việc nào đã hoàn thành (done) chưa, sau đó cập nhật công việc có mã T001 sang trạng thái 'done'.",
+    "action_type": "TOOL_EXECUTION",
+    "tool_name": "update_task_status",
+    "arguments": {
+      "task_id": "T001",
+      "new_status": "done"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "task_id": "T001",
+      "new_status": "done",
+      "message": "Đã cập nhật công việc 'Hoàn thành báo cáo tuần' (mã T001) sang trạng thái 'done'."
+    },
+    "latency_ms": 790.83
+  },
+  {
+    "step": 3,
+    "query": "Trước tiên hãy kiểm tra xem có công việc nào đã hoàn thành (done) chưa, sau đó cập nhật công việc có mã T001 sang trạng thái 'done'.",
+    "action_type": "FINAL_ANSWER",
+    "thought": "OpenAI phản hồi trực tiếp bằng văn bản (không cần gọi thêm công cụ).",
+    "output": "Đã kiểm tra và có 2 công việc đã hoàn thành. Sau đó, công việc có mã T001 đã được cập nhật sang trạng thái 'done'.",
+    "latency_ms": 1039.5
+  },
+  {
+    "step": 1,
+    "query": "Hãy xóa giúp tôi công việc có mã T999.",
+    "action_type": "TOOL_EXECUTION",
+    "tool_name": "delete_task",
+    "arguments": {
+      "task_id": "T999"
+    },
+    "observation": {
+      "status": "NOT_FOUND",
+      "message": "Không tìm thấy công việc có mã 'T999' để xóa."
+    },
+    "latency_ms": 757.97
+  },
+  {
+    "step": 2,
+    "query": "Hãy xóa giúp tôi công việc có mã T999.",
+    "action_type": "FINAL_ANSWER",
+    "thought": "OpenAI phản hồi trực tiếp bằng văn bản (không cần gọi thêm công cụ).",
+    "output": "Không tìm thấy công việc nào có mã 'T999' để xóa. Bạn có cần tôi giúp gì thêm không?",
+    "latency_ms": 929.22
   }
 ]

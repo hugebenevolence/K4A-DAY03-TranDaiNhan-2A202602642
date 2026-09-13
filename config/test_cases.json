@@ -1,0 +1,37 @@
+[
+  {
+    "id": "TC01",
+    "type": "direct_query",
+    "question": "Chào bạn, bạn có thể cho tôi vài mẹo quản lý công việc hiệu quả hơn không?",
+    "expected_behavior": "Chatbot trả lời trực tiếp từ System Prompt, không cần gọi bất kỳ Tool nào.",
+    "complexity": "Low"
+  },
+  {
+    "id": "TC02",
+    "type": "single_tool_query",
+    "question": "Hãy cho tôi xem danh sách các công việc đang chờ xử lý (pending).",
+    "expected_behavior": "Agent nhận diện nhu cầu tra cứu, tự động phát sinh Tool Call 'get_tasks_by_status' với status='pending'.",
+    "complexity": "Medium"
+  },
+  {
+    "id": "TC03",
+    "type": "task_creation",
+    "question": "Tạo giúp tôi một công việc mới: 'Ôn thi cuối kỳ môn AI', hạn hoàn thành 25/09/2026, mức ưu tiên cao.",
+    "expected_behavior": "Agent tự động phát sinh Tool Call 'create_task' với đúng title, due_date và priority.",
+    "complexity": "Medium"
+  },
+  {
+    "id": "TC04",
+    "type": "multi_step_reasoning",
+    "question": "Trước tiên hãy kiểm tra xem có công việc nào đã hoàn thành (done) chưa, sau đó cập nhật công việc có mã T001 sang trạng thái 'done'.",
+    "expected_behavior": "Agent thực hiện chuỗi ReAct đa bước thật sự: gọi Tool 'get_tasks_by_status' (done) trước, nhận Observation, rồi tiếp tục gọi Tool 'update_task_status' (T001, done) ở vòng lặp kế tiếp, cuối cùng mới tổng hợp Final Answer.",
+    "complexity": "High"
+  },
+  {
+    "id": "TC05",
+    "type": "edge_case_handling",
+    "question": "Hãy xóa giúp tôi công việc có mã T999.",
+    "expected_behavior": "Agent gọi Tool 'delete_task' với task_id='T999', nhận kết quả NOT_FOUND từ MCP Server (vì mã không tồn tại) và phản hồi lịch sự, chính xác, không bịa đặt rằng đã xóa thành công.",
+    "complexity": "Medium"
+  }
+]

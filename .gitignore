@@ -9,6 +9,10 @@ __pycache__/
 # Environment Variables & Keys
 .env
 
+# Trạng thái Task runtime (persistence cục bộ) - không commit để mỗi lần clone/chấm bài
+# đều bắt đầu từ dữ liệu mẫu mặc định trong src/tools.py
+data/
+
 # System & IDE files
 .DS_Store
 Thumbs.db
